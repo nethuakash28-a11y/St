@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WhatsApp Bot Pairing</title>
+<style>
+  :root { --bg:#0f172a; --card:#1e293b; --text:#e2e8f0; --accent:#22c55e; }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f1f5f9; --card:#ffffff; --text:#0f172a; --accent:#16a34a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+         background:var(--bg); color:var(--text); font-family:system-ui,sans-serif; padding:16px; }
+  .card { background:var(--card); padding:28px; border-radius:16px; width:100%; max-width:380px;
+          box-shadow:0 10px 30px rgba(0,0,0,.25); text-align:center; }
+  h1 { font-size:20px; margin:0 0 6px; }
+  p { font-size:14px; opacity:.8; margin:0 0 18px; }
+  input { width:100%; padding:12px; border-radius:10px; border:1px solid #64748b55;
+          background:transparent; color:inherit; font-size:16px; margin-bottom:12px; }
+  button { width:100%; padding:12px; border:0; border-radius:10px; background:var(--accent);
+           color:#fff; font-size:16px; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.6; }
+  #code { font-size:32px; letter-spacing:4px; font-weight:700; margin-top:18px; word-break:break-all; }
+  #msg { margin-top:12px; font-size:14px; min-height:20px; }
+  .ok { color:var(--accent); }
+  .err { color:#ef4444; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>WhatsApp Bot Pairing</h1>
+    <p>Country code ekath ekka number eka denna (+ nathuwa)</p>
+    <input id="number" type="tel" placeholder="94771234567" inputmode="numeric">
+    <button id="btn">Get Pairing Code</button>
+    <div id="code"></div>
+    <div id="msg"></div>
+  </div>
+
+<script>
+const btn = document.getElementById('btn');
+const codeEl = document.getElementById('code');
+const msgEl = document.getElementById('msg');
+
+async function checkStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    if (d.connected) {
+      codeEl.textContent = '';
+      msgEl.className = 'ok';
+      msgEl.textContent = '✅ Connected! Bot eka ready.';
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+btn.onclick = async () => {
+  const number = document.getElementById('number').value.trim();
+  msgEl.className = ''; msgEl.textContent = ''; codeEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Please wait...';
+  try {
+    const r = await fetch('/api/pair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number })
+    });
+    const d = await r.json();
+    if (d.error) {
+      msgEl.className = 'err'; msgEl.textContent = d.error;
+    } else {
+      codeEl.textContent = d.code;
+      msgEl.textContent = 'WhatsApp > Linked Devices > Link with phone number, e code eka danna.';
+      const timer = setInterval(async () => { if (await checkStatus()) clearInterval(timer); }, 3000);
+    }
+  } catch (e) {
+    msgEl.className = 'err'; msgEl.textContent = 'Network error';
+  }
+  btn.disabled = false; btn.textContent = 'Get Pairing Code';
+};
+
+checkStatus();
+</script>
+</body>
+</html>
